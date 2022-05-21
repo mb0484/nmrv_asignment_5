@@ -230,6 +230,7 @@ class TrackerSiamFC(Tracker):
             elif self.method == "gauss":
                 positions = self.sample_points_gauss((img.shape[0], img.shape[1]))
             else:
+                print("error")
                 raise ProcessLookupError
             
             image = None
