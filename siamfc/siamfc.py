@@ -1,5 +1,4 @@
 from __future__ import absolute_import, division, print_function
-from msilib.schema import Error
 
 import torch
 import torch.nn as nn
