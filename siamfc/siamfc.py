@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+from msilib.schema import Error
 
 import torch
 import torch.nn as nn
@@ -78,15 +79,16 @@ class TrackerSiamFC(Tracker):
         
         ##ADDED!!!!!
         
-        self.failure_thr = None
+        self.failure_thr = 3.5
         self.redetection_thr = None
-        self.sampling_method = "gauss"  # random/gauss
+        self.method = "gauss"  # random/gauss
         self.gauss_cov = 4500
-        self.redetection_samples = 20
+        self.num_samples = 20
         self.target_visible = None
         self.frame = 0
         self.target_corrs = []
         self.target_corr = None
+        self.tracker_start = True
         
         #####
 
@@ -125,17 +127,32 @@ class TrackerSiamFC(Tracker):
     
     ###ADDED!!!!!!!!!
     
-    def random_samples(self, method, img_size):
-        if method == "random":
-            x_positions = np.random.randint(10, img_size[0], self.redetection_samples).astype("float")
-            y_positions = np.random.randint(10, img_size[1], self.redetection_samples).astype("float")
-            return np.array([[x, y] for x, y in zip(x_positions, y_positions)])
-        elif method == "gauss":
-            return np.random.multivariate_normal(self.center,
-                                                 np.array([[self.gauss_cov, 0], [0, self.gauss_cov]]),
-                                                 self.redetection_samples)
-        else:
-            raise NotImplementedError
+    #def random_samples(self, method, img_size):
+    #    if method == "random":
+    #        x_positions = np.random.randint(10, img_size[0], self.redetection_samples).astype("float")
+    #        y_positions = np.random.randint(10, img_size[1], self.redetection_samples).astype("float")
+    #        return np.array([[x, y] for x, y in zip(x_positions, y_positions)])
+    #    elif method == "gauss":
+    #        return np.random.multivariate_normal(self.center,
+    #                                             np.array([[self.gauss_cov, 0], [0, self.gauss_cov]]),
+    #                                             self.redetection_samples)
+    #    else:
+    #        raise NotImplementedError
+        
+        
+    def sample_random_points(self, size_of_img):
+        arr = []
+        x_positions = np.random.randint(10, size_of_img[0], self.num_samples).astype("float")
+        y_positions = np.random.randint(10, size_of_img[1], self.num_samples).astype("float")
+        
+        for i in range(0, len(x_positions)):
+            arr.push([x_positions[i], y_positions[i]])
+            
+        return np.array(arr)
+    
+    def sample_points_gauss(self, size_of_img):
+        arr = np.array([[self.gauss_cov, 0], [0, self.gauss_cov]])
+        return np.random.multivariate_normal(self.center, arr, self.num_samples)
         
     ######
     
@@ -206,12 +223,21 @@ class TrackerSiamFC(Tracker):
         else: 
             # re-detection of the target
             # random positions around precious seen position of target
-            positions = self.random_samples(self.sampling_method, (img.shape[0], img.shape[1]))
+            
+            #positions = self.random_samples(self.method, (img.shape[0], img.shape[1]))
+            
+            if self.method == "random":
+                positions = self.sample_random_points((img.shape[0], img.shape[1]))
+            elif self.method == "gauss":
+                positions = self.sample_points_gauss((img.shape[0], img.shape[1]))
+            else:
+                raise ProcessLookupError
+            
             image = None
 
             # for x, y in positions:
             #     image = cv2.circle(img, (int(y), int(x)), radius=0, color=(0, 0, 255), thickness=4)
-            # cv2.imshow("SAMPLES - " + self.sampling_method, image)
+            # cv2.imshow("SAMPLES - " + self.method, image)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
 
@@ -248,13 +274,13 @@ class TrackerSiamFC(Tracker):
         
         ######ADDEDDD!!!!!!
         
-        #only when you start the tracker
-        if not self.target_corr:
+        if self.tracker_start:
             self.target_corr = max_resp
+            self.tracker_start = False
         
         # mogoce lahk ze cist na zacetku nastavis
-        if not self.failure_thr and not self.redetection_thr:
-            self.failure_thr = 3.5
+        #if not self.failure_thr and not self.redetection_thr:
+        #    self.failure_thr = 3.5
 
         if not self.target_corrs or self.target_visible:
             self.target_corrs.append(max_resp)
@@ -282,11 +308,11 @@ class TrackerSiamFC(Tracker):
         
         if self.target_visible:
             disp_in_image = disp_in_instance * self.x_sz * self.scale_factors[scale_id] / self.cfg.instance_sz
+            self.center += disp_in_image
+            scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr * self.scale_factors[scale_id]
         else:
             disp_in_image = disp_in_instance * self.x_sz / self.cfg.instance_sz
-
-        if self.target_visible:
-            self.center += disp_in_image
+            scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr
             
         ###############
 
@@ -296,10 +322,10 @@ class TrackerSiamFC(Tracker):
         
         #####ADDEDD!!!!!!
         
-        if self.target_visible:
-            scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr * self.scale_factors[scale_id]
-        else:
-            scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr
+        #if self.target_visible:
+        #    scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr * self.scale_factors[scale_id]
+        #else:
+        #    scale = (1 - self.cfg.scale_lr) * 1.0 + self.cfg.scale_lr
             
         ############
         
@@ -310,9 +336,10 @@ class TrackerSiamFC(Tracker):
         ########ADDEDDD!!!
         
         # Target visible if max response higher than threshold
-        if not self.target_visible and max_resp > self.redetection_thr:
+        if max_resp > self.redetection_thr:
             self.target_visible = True
-        elif self.target_visible and max_resp < self.failure_thr:
+        
+        if max_resp < self.failure_thr:
             self.target_visible = False
         # self.target_visible = max_resp > self.failure_thr
         
