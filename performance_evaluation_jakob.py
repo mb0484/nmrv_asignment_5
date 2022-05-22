@@ -95,6 +95,9 @@ def evaluate_performance(dataset_path, results_dir, latex=False):
 
         pr, re, f = calculate_pr_re_f([sequence], [overlaps], [scores], estimate_thresholds([scores], 100))
         if latex:
+          pr = round(pr, 2)
+          re = round(re, 2)
+          f = round(f, 2)
           print(f'{sequence_name} & {pr} & {re} & {f} \\\\\n\\hline')
         else:
           print(f'----------{sequence_name}-----------')
@@ -105,7 +108,10 @@ def evaluate_performance(dataset_path, results_dir, latex=False):
     pr, re, f = calculate_pr_re_f(datasets, overlaps_all, scores_all, estimate_thresholds(scores_all, 100))
 
     if latex:
-      print(f'all & {pr:.2f} & {re:.2f} & {f:.2f} \\\\\n\\hline')
+      pr = round(pr, 2)
+      re = round(re, 2)
+      f = round(f, 2)
+      print(f'all & {pr} & {re} & {f} \\\\\n\\hline')
     else:
       print('----------all-------------')
       print('Precision:', pr)
