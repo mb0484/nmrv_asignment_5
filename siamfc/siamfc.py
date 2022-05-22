@@ -80,9 +80,9 @@ class TrackerSiamFC(Tracker):
         
         self.failure_thr = 3.0
         self.redetection_thr = None
-        self.method = "gauss"  # random/gauss
+        self.method = "random"  # random/gauss
         self.gauss_cov = 4500
-        self.num_samples = 30
+        self.num_samples = 50
         self.target_visible = None
         self.frame = 0
         self.target_corrs = []
