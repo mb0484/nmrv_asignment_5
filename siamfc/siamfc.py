@@ -140,7 +140,7 @@ class TrackerSiamFC(Tracker):
         
         
     def sample_random_points(self, size_of_img):
-        arr = []
+        arr = np.array([])
         x_positions = np.random.randint(10, size_of_img[0], self.num_samples).astype("float")
         y_positions = np.random.randint(10, size_of_img[1], self.num_samples).astype("float")
         
