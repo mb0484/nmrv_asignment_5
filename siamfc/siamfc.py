@@ -78,7 +78,7 @@ class TrackerSiamFC(Tracker):
         
         ##ADDED!!!!!
         
-        self.failure_thr = 3.5
+        self.failure_thr = 3.0
         self.redetection_thr = None
         self.method = "gauss"  # random/gauss
         self.gauss_cov = 4500
@@ -230,7 +230,6 @@ class TrackerSiamFC(Tracker):
             elif self.method == "gauss":
                 positions = self.sample_points_gauss((img.shape[0], img.shape[1]))
             else:
-                print("error")
                 raise ProcessLookupError
             
             image = None
@@ -284,7 +283,7 @@ class TrackerSiamFC(Tracker):
 
         if not self.target_corrs or self.target_visible:
             self.target_corrs.append(max_resp)
-            self.redetection_thr = np.mean(self.target_corrs) - 0.2
+            self.redetection_thr = np.mean(self.target_corrs) - 0.3
             # print(mean(self.target_corrs))
             
             
