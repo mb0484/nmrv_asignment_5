@@ -105,7 +105,7 @@ def evaluate_performance(dataset_path, results_dir, latex=False):
     pr, re, f = calculate_pr_re_f(datasets, overlaps_all, scores_all, estimate_thresholds(scores_all, 100))
 
     if latex:
-      print(f'all & {pr} & {re} & {f} \\\\\n\\hline')
+      print('all & %.2f & %.2f & %.2f \\\\\n\\hline', pr, re, f)
     else:
       print('----------all-------------')
       print('Precision:', pr)
